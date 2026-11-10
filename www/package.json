@@ -1,0 +1,9 @@
+{
+  "name": "old-london-pub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Old London Pub happenings site + shared API",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

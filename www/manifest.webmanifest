@@ -1,0 +1,23 @@
+{
+  "id": "./",
+  "name": "Old London Pub — What's On",
+  "short_name": "Old London Pub",
+  "description": "Quiz nights, live music, comedy and everything happening at Old London Pub.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#100e0c",
+  "theme_color": "#12100e",
+  "categories": ["food", "entertainment", "lifestyle"],
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "What's On", "short_name": "What's On", "url": "./#/home", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "My Saved", "short_name": "Saved", "url": "./#/saved", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Ask OLP", "short_name": "Ask OLP", "url": "./?ask=1", "icons": [{ "src": "assets/icons/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

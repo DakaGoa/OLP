@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Runtime data store (re-seeded from seed.js on first run; may contain test sessions)
+olp-data.json
+
+# Deployment markers / local tooling
+*.genie
+.genie
+.workbuddy/
+.test-www/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
+
+# Keep android-web (generated web bundle used by the Android build) tracked.
+!android-web/

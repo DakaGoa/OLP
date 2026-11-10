@@ -1,0 +1,16 @@
+{
+  "appId": "com.oldlondonpub.app",
+  "appName": "Old London Pub",
+  "webDir": "android-web",
+  "loggingBehavior": "none",
+  "android": {
+    "allowMixedContent": false,
+    "appendUserAgent": "OLPAndroid/1.0",
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon"
+    }
+  }
+}

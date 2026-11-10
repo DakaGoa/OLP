@@ -1,0 +1,20 @@
+{
+  "name": "old-london-pub-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Old London Pub Android app (Capacitor wrapper around the happenings site)",
+  "scripts": {
+    "android:assets": "node tools/build-android-assets.js",
+    "android:sync": "npm run android:assets && npx cap sync android",
+    "android:apk": "npm run android:sync && cd android && gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/browser": "^8.0.5",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/local-notifications": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0"
+  }
+}

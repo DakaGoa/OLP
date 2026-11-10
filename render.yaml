@@ -1,0 +1,18 @@
+# Old London Pub — Render deploy config (full server-backed experience).
+# Push this repo to GitHub, then in Render: New > Blueprints > connect the repo.
+# This runs the Node API + static PWA; real Web Push, share pages and iCal work.
+services:
+  - type: web
+    name: old-london-pub
+    runtime: node
+    rootDir: www
+    plan: free
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: "3000"
+      - key: NODE_ENV
+        value: production

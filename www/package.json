@@ -5,5 +5,11 @@
   "description": "Old London Pub happenings site + shared API",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
   }
 }

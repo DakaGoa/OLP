@@ -340,6 +340,7 @@
 
       pushSubscribe: async function (body) {
         var db = await load();
+        if (typeof require === 'function') { try { require('./webpush.js').ensureVapid(db); } catch (e) {} }
         var endpoint = String((body.subscription && body.subscription.endpoint) || body.endpoint || '');
         if (endpoint.indexOf('https://') !== 0) throw fail(400, 'Invalid push subscription.');
         var rec = db.subscriptions.find(function (x) { return x.endpoint === endpoint; });
@@ -375,6 +376,13 @@
         return { ok: true, prefs: { lang: rec.lang, categories: rec.categories, quiet: rec.quiet } };
       },
 
+      publicVapid: async function () {
+        var db = await load();
+        var pub = null;
+        if (typeof require === 'function') { try { pub = require('./webpush.js').ensureVapid(db).publicKey; await save(); } catch (e) {} }
+        return { publicKey: pub };
+      },
+
       pushList: async function (token) {
         var db = await load();
         requireAdmin(token, db);
@@ -392,10 +400,16 @@
         requireAdmin(token, db);
         var msg = String(body.message || '').slice(0, 500);
         if (!msg) throw fail(400, 'Message is empty.');
-        /* In file-backed mode we cannot actually send push messages to FCM/MP.
-           We log the broadcast and return the subscriber count.
-           A real push server would iterate subscriptions and POST to each endpoint. */
-        return { ok: true, subscribers: db.subscriptions.length, message: msg };
+        if (typeof require !== 'function') return { ok: true, subscribers: db.subscriptions.length, message: msg, note: 'node-only' };
+        var out = { ok: true, subscribers: db.subscriptions.length, message: msg };
+        try {
+          var wp = require('./webpush.js');
+          var res = await wp.broadcast(db, msg, { title: 'Old London Pub', url: '/' });
+          out.sent = res.sent;
+          out.failed = res.failed;
+          out.results = res.results;
+        } catch (e) { out.error = e.message; }
+        return out;
       },
 
       updateSettings: async function (token, body) {
@@ -440,6 +454,7 @@
       if ((m = path.match(/^\/series\/([^/]+)$/)) && method === 'DELETE') {
         return { status: 200, data: await api.deleteSeries(token, decodeURIComponent(m[1]), body.futureOnly !== false) };
       }
+      if (path === '/push/vapid' && method === 'GET') return { status: 200, data: await api.publicVapid() };
       if (path === '/push/subscribe' && method === 'POST') return { status: 200, data: await api.pushSubscribe(body) };
       if (path === '/push/unsubscribe' && method === 'POST') return { status: 200, data: await api.pushUnsubscribe(body) };
       if (path === '/push/prefs' && method === 'POST') return { status: 200, data: await api.pushPrefs(body) };

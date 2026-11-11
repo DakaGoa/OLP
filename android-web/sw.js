@@ -1,5 +1,5 @@
 /* Old London Pub service worker: network-first, with an offline cache. */
-const CACHE = 'olp-v8';
+const CACHE = 'olp-v9';
 const SHELL = [
   './', './index.html', './css/styles.css', './manifest.webmanifest',
   './js/seed.js', './js/core.js', './js/config.js', './js/api.js', './js/i18n.js',

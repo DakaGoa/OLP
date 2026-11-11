@@ -369,7 +369,7 @@ function eventFormHtml() {
     '<label class="field wide"><span>' + esc(t('form.title')) + '</span><input name="title" required maxlength="120" value="' + esc(f.title) + '" placeholder="The Big Tuesday Quiz"></label>' +
     '<label class="field wide"><span>' + esc(t('form.titleSr')) + '</span><input name="titleSr" maxlength="120" value="' + esc(f.titleSr || '') + '" placeholder="Veliki kviz utorkom"></label>' +
     '<label class="field"><span>' + esc(t('form.category')) + '</span><select name="category">' + CATEGORIES.map((c) => '<option value="' + c.id + '" ' + (f.category === c.id ? 'selected' : '') + '>' + esc(categoryLabel(c.id)) + '</option>').join('') + '</select></label>' +
-    '<label class="field"><span>' + esc(t('form.photo')) + '</span><select name="image">' + customImgOpt(f.image) + imgOpts.map((i) => '<option value="assets/img/' + i + '.jpg" ' + (f.image === 'assets/img/' + i + '.jpg' ? 'selected' : '') + '>' + i + '.jpg</option>').join('') + '</select></label>' +
+    photoField(f.image, imgOpts) +
     '<label class="field"><span>' + esc(t('form.date')) + '</span><input type="date" name="date" required value="' + esc(f.date) + '"></label>' +
     '<label class="field"><span>' + esc(t('form.start')) + '</span><input type="time" name="time" required value="' + esc(f.time) + '"></label>' +
     '<label class="field"><span>' + esc(t('form.end')) + '</span><input type="time" name="endTime" value="' + esc(f.endTime || '') + '"></label>' +
@@ -561,7 +561,7 @@ function seriesFormHtml() {
     '<label class="field wide"><span>' + esc(t('form.title')) + '</span><input name="title" required maxlength="120" value="' + esc(f.title) + '" placeholder="The Big Tuesday Quiz"></label>' +
     '<label class="field wide"><span>' + esc(t('form.titleSr')) + '</span><input name="titleSr" maxlength="120" value="' + esc(f.titleSr || '') + '" placeholder="Veliki kviz utorkom"></label>' +
     '<label class="field"><span>' + esc(t('form.category')) + '</span><select name="category">' + CATEGORIES.map((c) => '<option value="' + c.id + '" ' + (f.category === c.id ? 'selected' : '') + '>' + esc(categoryLabel(c.id)) + '</option>').join('') + '</select></label>' +
-    '<label class="field"><span>' + esc(t('form.photo')) + '</span><select name="image">' + customImgOpt(f.image) + imgOpts.map((i) => '<option value="assets/img/' + i + '.jpg" ' + (f.image === 'assets/img/' + i + '.jpg' ? 'selected' : '') + '>' + i + '.jpg</option>').join('') + '</select></label>' +
+    photoField(f.image, imgOpts) +
     '<label class="field"><span>' + esc(t('form.date')) + '</span><input type="date" name="date" required value="' + esc(f.date) + '"></label>' +
     '<label class="field"><span>' + esc(t('form.start')) + '</span><input type="time" name="time" required value="' + esc(f.time) + '"></label>' +
     '<label class="field"><span>' + esc(t('series.freq')) + '</span><select name="freq">' + freqs.map((fr) => '<option value="' + fr.id + '" ' + (f.freq === fr.id ? 'selected' : '') + '>' + esc(fr.label) + '</option>').join('') + '</select></label>' +
@@ -659,6 +659,14 @@ function renderChat() {
   $('#chat-attach').classList.toggle('is-disabled', S.chatBusy);
   $('#chat-file').disabled = S.chatBusy;
   renderChatPreview();
+}
+
+function photoField(image, imgOpts) {
+  return '<div class="field photo-field"><span>' + esc(t('form.photo')) + '</span>' +
+    '<div class="photo-row"><span class="photo-thumb" style="background-image:url(&quot;' + esc(image || '') + '&quot;)"></span>' +
+    '<select name="image" data-role="photo-select">' + customImgOpt(image) + imgOpts.map((i) => '<option value="assets/img/' + i + '.jpg" ' + (image === 'assets/img/' + i + '.jpg' ? 'selected' : '') + '>' + i + '.jpg</option>').join('') + '</select>' +
+    '<label class="btn btn-outline btn-sm photo-upload">&#8679; <span>' + esc(t('form.upload')) + '</span><input type="file" accept="image/*" data-role="photo-file" hidden></label>' +
+    '</div></div>';
 }
 
 function customImgOpt(image) {
@@ -951,6 +959,27 @@ async function onSubmit(ev) {
 }
 
 async function onChange(ev) {
+  if (ev.target.dataset && ev.target.dataset.role === 'photo-file') {
+    const file = ev.target.files && ev.target.files[0];
+    const box = ev.target.closest('.photo-field');
+    ev.target.value = '';
+    if (!file || !box) return;
+    try {
+      const url = await resizeImage(file);
+      const sel = box.querySelector('select[name="image"]');
+      [...sel.options].forEach((o) => { if (!o.value.startsWith('assets/img/')) o.remove(); });
+      const opt = document.createElement('option');
+      opt.value = url; opt.textContent = t('form.customPhoto');
+      sel.insertBefore(opt, sel.firstChild); sel.value = url;
+      box.querySelector('.photo-thumb').style.backgroundImage = 'url(' + JSON.stringify(url) + ')';
+    } catch (err) { showToast(t('chat.imageError'), 'error'); }
+    return;
+  }
+  if (ev.target.dataset && ev.target.dataset.role === 'photo-select') {
+    const th = ev.target.closest('.photo-field')?.querySelector('.photo-thumb');
+    if (th) th.style.backgroundImage = 'url(' + JSON.stringify(ev.target.value) + ')';
+    return;
+  }
   if (ev.target.id === 'chat-file') {
     const file = ev.target.files && ev.target.files[0];
     ev.target.value = '';

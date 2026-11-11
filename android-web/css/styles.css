@@ -579,3 +579,10 @@ html.intro-on, html.intro-on body { overflow: hidden; }
 .intro.intro-out { opacity: 0; pointer-events: none; }
 .intro-skip { position: absolute; right: calc(16px + env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); padding: 8px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); background: rgba(0,0,0,.45); color: #fff; font: inherit; font-size: 14px; letter-spacing: .04em; cursor: pointer; backdrop-filter: blur(4px); }
 .intro-skip:hover, .intro-skip:focus-visible { background: rgba(0,0,0,.7); border-color: #fff; }
+
+/* Admin photo field: preset select + custom upload */
+.photo-row { display: flex; align-items: center; gap: 8px; }
+.photo-row select { flex: 1; min-width: 0; }
+.photo-thumb { flex: none; width: 44px; height: 44px; border-radius: 8px; background: #2a2420 center/cover no-repeat; border: 1px solid rgba(255,255,255,.12); }
+.photo-upload { flex: none; cursor: pointer; white-space: nowrap; }
+@media (max-width: 420px) { .photo-row { flex-wrap: wrap; } .photo-row select { flex-basis: calc(100% - 52px); } .photo-upload { width: 100%; justify-content: center; } }

@@ -321,11 +321,40 @@ function generalAnswer(text, ctx) {
   return { text: t('ai.fallback') + (ctx.isAdmin ? t('ai.fallbackAdmin') : ''), chips: chipsDefault() };
 }
 
+/* ---- clock format (12h / 24h) ------------------------------------------- */
+// Returns '24h', '12h' or null. "12h" on its own is ambiguous (noon in Serbian,
+// e.g. "u 12h"), so it needs a clock/format word or a bare "switch to 12h".
+const CLOCK_CTX = /\b(clock|format|casovnik\w*|display|prikaz\w*|military)\b/;
+const CLOCK_FILLER = new Set(['switch', 'to', 'from', 'sa', 'od', 'use', 'set', 'change', 'please', 'make', 'it', 'the', 'a', 'go', 'back', 'show', 'times', 'in', 'time',
+  'prebaci', 'promeni', 'koristi', 'podesi', 'stavi', 'vrati', 'na', 'u', 'molim', 'te', 'vas', 'mi', 'prikazi', 'vreme']);
+function detectClock(n) {
+  const hits = [];
+  const scan = (re, v) => { for (const m of n.matchAll(re)) hits.push({ v, i: m.index, tok: m[0] }); };
+  scan(/\b24\s*-?\s*(?:h|hr|hrs|hour|hours|casovn\w*)\b|\bmilitary time\b/g, '24h');
+  scan(/\b12\s*-?\s*(?:hr|hrs|hour|hours|casovn\w*)\b|\ba\.?m\.?\s*[\/-]?\s*p\.?m\.?(?=\W|$)/g, '12h');
+  if (/\b24\s*sata\b/.test(n) && CLOCK_CTX.test(n)) scan(/\b24\s*sata\b/g, '24h');
+  for (const m of n.matchAll(/\b12\s*h\b/g)) {
+    const rest = (n.slice(0, m.index) + ' ' + n.slice(m.index + m[0].length)).split(/[^a-z0-9]+/).filter(Boolean);
+    if (CLOCK_CTX.test(n) || hits.length || rest.every((w) => CLOCK_FILLER.has(w))) hits.push({ v: '12h', i: m.index });
+  }
+  if (!hits.length) return null;
+  const formats = new Set(hits.map((h) => h.v));
+  if (formats.size === 1) return hits[0].v;
+  // Both named ("from 12h to 24h"): prefer the one after to/na/into, else the last one.
+  const target = n.match(/\b(?:to|into|na)\s+(24|12)/);
+  if (target) return target[1] + 'h';
+  return hits.sort((a, b) => b.i - a.i)[0].v;
+}
+
 /* ---- main entry --------------------------------------------------------- */
 export function respond(message, ctx) {
   const text = String(message || '').trim();
   if (!text && !ctx.image) return { text: t('ai.empty'), chips: chipsDefault() };
   const n = normalize(text);
+  // Clock format is a personal display preference: anyone may change it, and it
+  // must win over the admin-only "change/set …" update intent.
+  const clock = detectClock(n);
+  if (clock) return { text: t(clock === '24h' ? 'ai.clock24' : 'ai.clock12'), clock, chips: chipsDefault() };
   const range = parseDateRange(text);
   const category = detectCategory(text);
   const isAdmin = !!ctx.isAdmin;

@@ -774,6 +774,23 @@ function resetChat() {
   });
 }
 
+// Switch 12h/24h display (from the toggle or from Ask OLP) and re-render times.
+function applyClock(v) {
+  if (getClock() === v) return;
+  setClock(v);
+  // Swap open time pickers in place so other in-progress form input survives.
+  document.querySelectorAll('.time-field').forEach((tf) => {
+    const hidden = tf.querySelector('input[type="hidden"]');
+    tf.outerHTML = timeFieldHtml(tf.dataset.name, hidden ? hidden.value : '', !!tf.dataset.required);
+  });
+  document.querySelectorAll('.clock-switch button[data-clock]').forEach((b) => {
+    b.classList.toggle('active', b.dataset.clock === v);
+  });
+  // Re-render displayed times (cards, event modal) without touching open forms.
+  if (!document.querySelector('#event-form, #series-form')) renderApp();
+  renderModal();
+}
+
 async function sendChat(raw) {
   const text = String(raw || '').trim();
   const image = S.chatImage;
@@ -785,6 +802,7 @@ async function sendChat(raw) {
   let res;
   try { res = respond(text, { events: S.events, settings: S.settings, user: S.user, isAdmin: S.user?.role === 'admin', image }); }
   catch (err) { res = { text: t('chat.error'), chips: defaultChips() }; }
+  if (res.clock) applyClock(res.clock);
   const msg = addMessage('assistant', { text: res.text, events: res.events, chips: res.chips, action: res.action });
   S.pendingAction = res.action ? { action: res.action, mid: msg.id } : null;
   S.chatBusy = false; renderChat();
@@ -869,22 +887,7 @@ async function onClick(ev) {
     showToast(t('lang.label') + ': ' + t('lang.name'));
     return;
   }
-  if (a === 'clock') {
-    if (getClock() === el.dataset.clock) return;
-    setClock(el.dataset.clock);
-    // Swap open time pickers in place so other in-progress form input survives.
-    document.querySelectorAll('.time-field').forEach((tf) => {
-      const hidden = tf.querySelector('input[type="hidden"]');
-      tf.outerHTML = timeFieldHtml(tf.dataset.name, hidden ? hidden.value : '', !!tf.dataset.required);
-    });
-    document.querySelectorAll('.clock-switch button[data-clock]').forEach((b) => {
-      b.classList.toggle('active', b.dataset.clock === el.dataset.clock);
-    });
-    // Re-render displayed times (cards, event modal) without touching open forms.
-    if (!document.querySelector('#event-form, #series-form')) renderApp();
-    renderModal();
-    return;
-  }
+  if (a === 'clock') { applyClock(el.dataset.clock); return; }
   if (a === 'maps') { openExternal(mapsUrl(addr())); return; }
   if (a === 'directions') { openExternal(directionsUrl(addr())); return; }
   if (a === 'scroll-events') { document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' }); return; }

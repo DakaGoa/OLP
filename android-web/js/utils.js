@@ -19,10 +19,21 @@ export function dateOf(iso, time) {
 }
 export function addDays(iso, n) { const d = dateOf(iso); d.setDate(d.getDate() + n); return isoOf(d); }
 
+/* 12h / 24h clock preference — remembered per device; defaults follow the language. */
+export function getClock() {
+  let v = null;
+  try { v = localStorage.getItem('olp-clock'); } catch (_) { /* storage blocked */ }
+  if (v === '12h' || v === '24h') return v;
+  return getLang() === 'sr' ? '24h' : '12h';
+}
+export function setClock(v) {
+  try { localStorage.setItem('olp-clock', v === '24h' ? '24h' : '12h'); } catch (_) { /* storage blocked */ }
+}
+
 export function formatTime(t) {
   if (!t) return '';
   const [h, m] = String(t).split(':').map(Number);
-  if (getLang() === 'sr') return pad(h) + ':' + pad(m);
+  if (getClock() === '24h') return pad(h) + ':' + pad(m || 0);
   const suffix = h >= 12 ? 'pm' : 'am';
   const hour = h % 12 === 0 ? 12 : h % 12;
   return hour + (m ? ':' + pad(m) : '') + suffix;

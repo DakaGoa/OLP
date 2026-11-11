@@ -2,7 +2,7 @@
    One dictionary for the website, the assistant and the Android app. */
 const DICT = {
   en: {
-    'lang.name': 'EN', 'lang.label': 'Language',
+    'lang.name': 'EN', 'lang.label': 'Language', 'clock.label': 'Clock format',
     'nav.whatsOn': "What's On", 'nav.saved': 'My Saved', 'nav.pub': 'The Pub', 'nav.admin': 'Admin',
     'nav.ask': 'Ask OLP', 'nav.signIn': 'Sign in',
     'nav.liveCal': 'Live calendar', 'nav.deviceCal': 'Device calendar',
@@ -209,7 +209,7 @@ const DICT = {
   },
 
   sr: {
-    'lang.name': 'SR', 'lang.label': 'Jezik',
+    'lang.name': 'SR', 'lang.label': 'Jezik', 'clock.label': 'Format vremena',
     'nav.whatsOn': 'Program', 'nav.saved': 'Sačuvano', 'nav.pub': 'O pabu', 'nav.admin': 'Admin',
     'nav.ask': 'Pitaj OLP', 'nav.signIn': 'Prijavi se',
     'nav.liveCal': 'Zajednički kalendar', 'nav.deviceCal': 'Lokalni kalendar',

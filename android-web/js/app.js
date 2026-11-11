@@ -6,7 +6,7 @@ import {
   escapeHtml as esc, icon, todayIso, addDays, dateOf, longDate, shortDate,
   relativeDay, formatTime, categoryLabel, isUpcoming, downloadIcs,
   mapsUrl, directionsUrl, t, getLang, setLang, applyStaticI18n,
-  localized, localizeError, dayNames, monthNames
+  localized, localizeError, dayNames, monthNames, getClock, setClock
 } from './utils.js';
 import {
   requestPermission, permissionState, scheduleFor, testNotification,
@@ -159,6 +159,62 @@ function langSwitchHtml() {
   '</div>';
 }
 
+function clockSwitchHtml() {
+  const c = getClock();
+  return '<div class="lang-switch clock-switch" role="group" aria-label="' + esc(t('clock.label')) + '">' +
+    icon('clock') +
+    '<button type="button" data-action="clock" data-clock="12h" class="' + (c === '12h' ? 'active' : '') + '">12h</button>' +
+    '<span>/</span>' +
+    '<button type="button" data-action="clock" data-clock="24h" class="' + (c === '24h' ? 'active' : '') + '">24h</button>' +
+  '</div>';
+}
+
+/* Time picker that follows the 12h/24h preference; a hidden input carries HH:MM for the form. */
+function timeFieldHtml(name, value, required) {
+  const parts = String(value || '').split(':');
+  const has = !!value && parts.length >= 2;
+  const h = has ? Number(parts[0]) : NaN;
+  const m = has ? Number(parts[1]) : NaN;
+  const is24 = getClock() === '24h';
+  const sel = (role, opts, cur, label) => '<select data-role="time-part" data-part="' + role + '" aria-label="' + esc(label) + '">' +
+    (required ? '' : '<option value="">--</option>') +
+    opts.map((o) => '<option value="' + o.v + '"' + (String(o.v) === String(cur) ? ' selected' : '') + '>' + o.l + '</option>').join('') +
+  '</select>';
+  const mins = [];
+  for (let i = 0; i < 60; i += 5) mins.push(i);
+  if (has && mins.indexOf(m) === -1) { mins.push(m); mins.sort((a, b) => a - b); }
+  const minOpts = mins.map((i) => ({ v: pad2(i), l: pad2(i) }));
+  const reqDefault = required && !has;
+  let html;
+  if (is24) {
+    const hours = [];
+    for (let i = 0; i < 24; i++) hours.push({ v: pad2(i), l: pad2(i) });
+    html = sel('h24', hours, has ? pad2(h) : (reqDefault ? '20' : ''), 'Hour') + '<b>:</b>' + sel('m', minOpts, has ? pad2(m) : (reqDefault ? '00' : ''), 'Minutes');
+  } else {
+    const hours = [];
+    for (let i = 1; i <= 12; i++) hours.push({ v: String(i), l: String(i) });
+    const h12 = has ? (h % 12 === 0 ? 12 : h % 12) : (reqDefault ? 8 : '');
+    const ap = has ? (h >= 12 ? 'pm' : 'am') : (reqDefault ? 'pm' : '');
+    html = sel('h12', hours, h12, 'Hour') + '<b>:</b>' + sel('m', minOpts, has ? pad2(m) : (reqDefault ? '00' : ''), 'Minutes') +
+      sel('ap', [{ v: 'am', l: 'AM' }, { v: 'pm', l: 'PM' }], ap, 'AM/PM');
+  }
+  const hidden = has ? pad2(h) + ':' + pad2(m) : (reqDefault ? '20:00' : '');
+  return '<span class="time-field" data-name="' + esc(name) + '"' + (required ? ' data-required="1"' : '') + '>' +
+    '<input type="hidden" name="' + esc(name) + '" value="' + hidden + '">' + html + '</span>';
+}
+function pad2(n) { return String(n).padStart(2, '0'); }
+function syncTimeField(wrap) {
+  const get = (p) => { const s = wrap.querySelector('[data-part="' + p + '"]'); return s ? s.value : null; };
+  const hidden = wrap.querySelector('input[type="hidden"]');
+  const m = get('m');
+  let h = get('h24');
+  if (h === null) {
+    const h12 = get('h12'); const ap = get('ap');
+    h = (h12 && ap) ? pad2((Number(h12) % 12) + (ap === 'pm' ? 12 : 0)) : '';
+  }
+  hidden.value = (h && m) ? h + ':' + m : '';
+}
+
 function navHtml() {
   const links = [
     { v: 'home', label: t('nav.whatsOn') },
@@ -176,6 +232,7 @@ function navHtml() {
     '<div class="nav-right">' +
       '<span class="mode-pill ' + (isShared() ? 'shared' : '') + '">' + esc(isShared() ? t('nav.liveCal') : t('nav.deviceCal')) + '</span>' +
       langSwitchHtml() +
+      clockSwitchHtml() +
       '<button class="btn btn-ghost btn-sm nav-ask" data-action="chat-open" type="button">' + icon('spark') + ' ' + esc(t('nav.ask')) + '</button>' +
       (S.user
         ? '<button class="account-btn" data-action="open-account" type="button"><span class="account-avatar">' + esc(S.user.name.slice(0, 1).toUpperCase()) + '</span><span>' + esc(S.user.name) + '</span></button>'
@@ -364,15 +421,15 @@ function eventFormHtml() {
   const f = e || { title: '', titleSr: '', category: 'quiz', date: addDays(todayIso(), 1), time: '20:00', endTime: '', price: 'Free entry', priceSr: 'Ulaz slobodan', description: '', descriptionSr: '', image: 'assets/img/quiz.jpg', featured: false };
   const imgOpts = ['hero', 'quiz', 'live', 'stage', 'crowd', 'drinks', 'food'];
   return '<div class="admin-form-wrap"><form id="event-form" class="admin-form">' +
-    '<div class="form-head"><h3>' + esc(t(e ? 'admin.editEvent' : 'admin.newEvent')) + '</h3><button class="icon-btn" data-action="admin-cancel" type="button" aria-label="' + esc(t('admin.cancel')) + '">' + icon('close') + '</button></div>' +
+    '<div class="form-head"><h3>' + esc(t(e ? 'admin.editEvent' : 'admin.newEvent')) + '</h3>' + clockSwitchHtml() + '<button class="icon-btn" data-action="admin-cancel" type="button" aria-label="' + esc(t('admin.cancel')) + '">' + icon('close') + '</button></div>' +
     '<input type="hidden" name="id" value="' + esc(e ? e.id : '') + '">' +
     '<label class="field wide"><span>' + esc(t('form.title')) + '</span><input name="title" required maxlength="120" value="' + esc(f.title) + '" placeholder="The Big Tuesday Quiz"></label>' +
     '<label class="field wide"><span>' + esc(t('form.titleSr')) + '</span><input name="titleSr" maxlength="120" value="' + esc(f.titleSr || '') + '" placeholder="Veliki kviz utorkom"></label>' +
     '<label class="field"><span>' + esc(t('form.category')) + '</span><select name="category">' + CATEGORIES.map((c) => '<option value="' + c.id + '" ' + (f.category === c.id ? 'selected' : '') + '>' + esc(categoryLabel(c.id)) + '</option>').join('') + '</select></label>' +
     photoField(f.image, imgOpts) +
     '<label class="field"><span>' + esc(t('form.date')) + '</span><input type="date" name="date" required value="' + esc(f.date) + '"></label>' +
-    '<label class="field"><span>' + esc(t('form.start')) + '</span><input type="time" name="time" required value="' + esc(f.time) + '"></label>' +
-    '<label class="field"><span>' + esc(t('form.end')) + '</span><input type="time" name="endTime" value="' + esc(f.endTime || '') + '"></label>' +
+    '<label class="field"><span>' + esc(t('form.start')) + '</span>' + timeFieldHtml('time', f.time, true) + '</label>' +
+    '<label class="field"><span>' + esc(t('form.end')) + '</span>' + timeFieldHtml('endTime', f.endTime || '', false) + '</label>' +
     '<label class="field"><span>' + esc(t('form.price')) + '</span><input name="price" maxlength="60" value="' + esc(f.price || '') + '"></label>' +
     '<label class="field"><span>' + esc(t('form.priceSr')) + '</span><input name="priceSr" maxlength="60" value="' + esc(f.priceSr || '') + '"></label>' +
     '<label class="field wide"><span>' + esc(t('form.description')) + '</span><textarea name="description" rows="3" maxlength="1200">' + esc(f.description || '') + '</textarea></label>' +
@@ -475,7 +532,7 @@ function eventModalHtml(e) {
     '<div class="event-modal-media" style="background-image:url(\'' + esc(e.image) + '\')"><span class="badge badge-' + esc(e.category) + '">' + esc(categoryLabel(e.category)) + '</span></div>' +
     '<div class="event-modal-body"><div class="eyebrow"><span class="rule"></span>' + esc(longDate(e.date).toUpperCase()) + ' · ' + esc(formatTime(e.time)) + '</div>' +
       '<h2>' + esc(localized(e, 'title')) + '</h2><p>' + esc(localized(e, 'description')) + '</p>' +
-      '<div class="detail-row">' + icon('clock') + '<span>' + esc(longDate(e.date)) + ', ' + esc(formatTime(e.time)) + (e.endTime ? ' – ' + esc(formatTime(e.endTime)) : '') + '</span></div>' +
+      '<div class="detail-row">' + icon('clock') + '<span>' + esc(longDate(e.date)) + ', ' + esc(formatTime(e.time)) + (e.endTime ? ' – ' + esc(formatTime(e.endTime)) : '') + '</span>' + clockSwitchHtml() + '</div>' +
       '<button class="detail-row link-detail" data-action="maps" type="button">' + icon('pin') + '<span>' + esc(addr()) + ' ↗</span></button>' +
       '<div class="detail-row">' + icon('star') + '<span>' + esc(localized(e, 'price')) + '</span></div>' +
       '<div class="modal-actions"><button class="btn btn-primary btn-sm" data-action="save" data-id="' + esc(e.id) + '" type="button">' + icon('bookmark') + ' ' + esc(t(saved ? 'event.saved' : 'event.save')) + '</button>' +
@@ -557,13 +614,13 @@ function seriesFormHtml() {
     { id: 'monthly', label: t('series.monthly') }
   ];
   return '<div class="admin-form-wrap"><form id="series-form" class="admin-form">' +
-    '<div class="form-head"><h3>' + esc(isNew ? t('series.add') : t('series.edit')) + '</h3><button class="icon-btn" data-action="admin-cancel" type="button" aria-label="' + esc(t('admin.cancel')) + '">' + icon('close') + '</button></div>' +
+    '<div class="form-head"><h3>' + esc(isNew ? t('series.add') : t('series.edit')) + '</h3>' + clockSwitchHtml() + '<button class="icon-btn" data-action="admin-cancel" type="button" aria-label="' + esc(t('admin.cancel')) + '">' + icon('close') + '</button></div>' +
     '<label class="field wide"><span>' + esc(t('form.title')) + '</span><input name="title" required maxlength="120" value="' + esc(f.title) + '" placeholder="The Big Tuesday Quiz"></label>' +
     '<label class="field wide"><span>' + esc(t('form.titleSr')) + '</span><input name="titleSr" maxlength="120" value="' + esc(f.titleSr || '') + '" placeholder="Veliki kviz utorkom"></label>' +
     '<label class="field"><span>' + esc(t('form.category')) + '</span><select name="category">' + CATEGORIES.map((c) => '<option value="' + c.id + '" ' + (f.category === c.id ? 'selected' : '') + '>' + esc(categoryLabel(c.id)) + '</option>').join('') + '</select></label>' +
     photoField(f.image, imgOpts) +
     '<label class="field"><span>' + esc(t('form.date')) + '</span><input type="date" name="date" required value="' + esc(f.date) + '"></label>' +
-    '<label class="field"><span>' + esc(t('form.start')) + '</span><input type="time" name="time" required value="' + esc(f.time) + '"></label>' +
+    '<label class="field"><span>' + esc(t('form.start')) + '</span>' + timeFieldHtml('time', f.time, true) + '</label>' +
     '<label class="field"><span>' + esc(t('series.freq')) + '</span><select name="freq">' + freqs.map((fr) => '<option value="' + fr.id + '" ' + (f.freq === fr.id ? 'selected' : '') + '>' + esc(fr.label) + '</option>').join('') + '</select></label>' +
     '<label class="field"><span>' + esc(t('series.count')) + '</span><input type="number" name="count" min="1" max="26" value="' + esc(f.count) + '"></label>' +
     '<label class="field"><span>' + esc(t('form.price')) + '</span><input name="price" maxlength="60" value="' + esc(f.price || '') + '"></label>' +
@@ -812,6 +869,22 @@ async function onClick(ev) {
     showToast(t('lang.label') + ': ' + t('lang.name'));
     return;
   }
+  if (a === 'clock') {
+    if (getClock() === el.dataset.clock) return;
+    setClock(el.dataset.clock);
+    // Swap open time pickers in place so other in-progress form input survives.
+    document.querySelectorAll('.time-field').forEach((tf) => {
+      const hidden = tf.querySelector('input[type="hidden"]');
+      tf.outerHTML = timeFieldHtml(tf.dataset.name, hidden ? hidden.value : '', !!tf.dataset.required);
+    });
+    document.querySelectorAll('.clock-switch button[data-clock]').forEach((b) => {
+      b.classList.toggle('active', b.dataset.clock === el.dataset.clock);
+    });
+    // Re-render displayed times (cards, event modal) without touching open forms.
+    if (!document.querySelector('#event-form, #series-form')) renderApp();
+    renderModal();
+    return;
+  }
   if (a === 'maps') { openExternal(mapsUrl(addr())); return; }
   if (a === 'directions') { openExternal(directionsUrl(addr())); return; }
   if (a === 'scroll-events') { document.getElementById('events')?.scrollIntoView({ behavior: 'smooth' }); return; }
@@ -959,6 +1032,8 @@ async function onSubmit(ev) {
 }
 
 async function onChange(ev) {
+  const tf = ev.target.closest && ev.target.closest('.time-field');
+  if (tf) { syncTimeField(tf); return; }
   if (ev.target.dataset && ev.target.dataset.role === 'photo-file') {
     const file = ev.target.files && ev.target.files[0];
     const box = ev.target.closest('.photo-field');

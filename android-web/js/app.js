@@ -134,6 +134,7 @@ function eventCard(e, compact) {
         '<div class="event-actions">' +
           '<button class="mini-btn ' + (saved ? 'saved' : '') + '" data-action="save" data-id="' + esc(e.id) + '" type="button" aria-label="' + esc(saved ? t('saved.remove') : t('cta.perk1')) + '">' + icon('bookmark') + '</button>' +
           '<button class="mini-btn" data-action="share" data-id="' + esc(e.id) + '" type="button" aria-label="' + esc(t('share.title')) + '">' + icon('share') + '</button>' +
+          (S.user?.role === 'admin' ? '<button class="mini-btn" data-action="admin-edit" data-id="' + esc(e.id) + '" type="button" title="' + esc(t('admin.editEvent')) + '" aria-label="' + esc(t('admin.editEvent')) + '">' + icon('edit') + '</button>' : '') +
           '<button class="mini-btn" data-action="event" data-id="' + esc(e.id) + '" type="button">' + esc(t('card.details')) + ' ' + icon('arrow') + '</button>' +
         '</div>' +
       '</div>' +
@@ -479,7 +480,12 @@ function eventModalHtml(e) {
       '<div class="detail-row">' + icon('star') + '<span>' + esc(localized(e, 'price')) + '</span></div>' +
       '<div class="modal-actions"><button class="btn btn-primary btn-sm" data-action="save" data-id="' + esc(e.id) + '" type="button">' + icon('bookmark') + ' ' + esc(t(saved ? 'event.saved' : 'event.save')) + '</button>' +
         '<button class="btn btn-outline btn-sm" data-action="ics" data-id="' + esc(e.id) + '" type="button">' + icon('calendar') + ' ' + esc(t('event.calendar')) + '</button>' +
-        '<button class="btn btn-ghost btn-sm" data-action="share" data-id="' + esc(e.id) + '" type="button">' + icon('send') + ' ' + esc(t('share.title')) + '</button></div>' +
+        '<button class="btn btn-ghost btn-sm" data-action="share" data-id="' + esc(e.id) + '" type="button">' + icon('send') + ' ' + esc(t('share.title')) + '</button>' +
+        (S.user?.role === 'admin'
+          ? '<button class="btn btn-outline btn-sm" data-action="admin-edit" data-id="' + esc(e.id) + '" type="button">' + icon('edit') + ' ' + esc(t('admin.editEvent')) + '</button>' +
+            '<button class="btn btn-ghost btn-sm" data-action="admin-delete" data-id="' + esc(e.id) + '" type="button">' + icon('trash') + ' ' + esc(t('admin.delete')) + '</button>'
+          : '') +
+      '</div>' +
     '</div></div>';
 }
 
@@ -838,12 +844,15 @@ async function onClick(ev) {
   }
   if (a === 'notify-test') { const ok = await testNotification(); showToast(ok ? t('toast.testSent') : t('toast.allowNotifications'), ok ? '' : 'error'); return; }
   if (a === 'admin-new') { S.adminEditing = 'new'; renderApp(); document.querySelector('.admin-form-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-  if (a === 'admin-edit') { S.adminEditing = id; renderApp(); document.querySelector('.admin-form-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+  if (a === 'admin-edit') {
+    if (S.modal) { S.modal = null; renderModal(); }
+    if (S.view !== 'admin') setView('admin');
+    S.adminEditing = id; renderApp(); document.querySelector('.admin-form-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
   if (a === 'admin-cancel') { S.adminEditing = null; renderApp(); return; }
   if (a === 'admin-delete') {
     const e = byId(id);
     if (!e || !window.confirm(t('admin.deleteConfirm', { title: localized(e, 'title'), date: longDate(e.date) }))) return;
-    try { await Data.deleteEvent(id); await refresh(); S.adminEditing = null; renderApp(); showToast(t('toast.eventDeleted')); }
+    try { await Data.deleteEvent(id); await refresh(); S.adminEditing = null; if (S.modal) { S.modal = null; renderModal(); } renderApp(); showToast(t('toast.eventDeleted')); }
     catch (err) { showToast(localizeError(err.message), 'error'); }
     return;
   }

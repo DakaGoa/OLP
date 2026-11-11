@@ -1,5 +1,5 @@
 /* Old London Pub service worker: network-first, with an offline cache. */
-const CACHE = 'olp-v5';
+const CACHE = 'olp-v6';
 const SHELL = [
   './', './index.html', './css/styles.css', './manifest.webmanifest',
   './js/seed.js', './js/core.js', './js/config.js', './js/api.js', './js/i18n.js',
@@ -11,7 +11,8 @@ const SHELL = [
   './assets/fonts/playfair-italic-latin.woff2',
   './assets/img/hero.jpg', './assets/img/live.jpg', './assets/img/quiz.jpg',
   './assets/img/stage.jpg', './assets/img/crowd.jpg', './assets/img/drinks.jpg',
-  './assets/img/food.jpg', './assets/img/interior.jpg'
+  './assets/img/food.jpg', './assets/img/interior.jpg',
+  './assets/video/intro.mp4', './assets/video/intro-poster.jpg'
 ];
 
 self.addEventListener('install', (event) => {

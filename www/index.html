@@ -11,9 +11,40 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="assets/icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
-  <link rel="stylesheet" href="css/styles.css?v=5">
+  <link rel="stylesheet" href="css/styles.css?v=6">
 </head>
 <body>
+  <div id="intro" class="intro" aria-label="Welcome to Old London Pub">
+    <video id="intro-video" src="assets/video/intro.mp4" poster="assets/video/intro-poster.jpg" muted autoplay playsinline preload="auto"></video>
+    <button id="intro-skip" class="intro-skip" type="button">Skip</button>
+  </div>
+  <script>
+    (function () {
+      var intro = document.getElementById('intro');
+      var video = document.getElementById('intro-video');
+      var done = false, seen = false;
+      try { seen = sessionStorage.getItem('olp-intro-seen') === '1'; } catch (e) {}
+      var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      function remove() { if (intro && intro.parentNode) intro.parentNode.removeChild(intro); document.documentElement.classList.remove('intro-on'); }
+      if (seen || reduce) { remove(); return; }
+      document.documentElement.classList.add('intro-on');
+      function dismiss() {
+        if (done) return; done = true;
+        try { sessionStorage.setItem('olp-intro-seen', '1'); } catch (e) {}
+        intro.classList.add('intro-out');
+        setTimeout(function () { try { video.pause(); } catch (e) {} remove(); }, 650);
+      }
+      video.addEventListener('ended', dismiss);
+      video.addEventListener('error', dismiss);
+      document.getElementById('intro-skip').addEventListener('click', dismiss);
+      var cap = setTimeout(dismiss, 12000);
+      video.addEventListener('loadedmetadata', function () {
+        if (isFinite(video.duration) && video.duration > 0) { clearTimeout(cap); cap = setTimeout(dismiss, video.duration * 1000 + 1500); }
+      });
+      var p = video.play();
+      if (p && p.catch) p.catch(dismiss);
+    })();
+  </script>
   <div id="app" aria-live="polite"></div>
 
   <div id="toast-host" role="status" aria-live="polite"></div>
@@ -55,6 +86,6 @@
   <script src="js/seed.js"></script>
   <script src="js/core.js"></script>
   <script src="js/vendor/qrcode.js"></script>
-  <script type="module" src="js/app.js?v=5"></script>
+  <script type="module" src="js/app.js?v=6"></script>
 </body>
 </html>

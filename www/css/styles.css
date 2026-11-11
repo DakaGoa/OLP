@@ -558,3 +558,13 @@ p { margin: 0; }
   .install-qr img { width: 160px; height: 160px; }
   .share-qr img { width: 130px; height: 130px; }
 }
+
+/* chat image attachments */
+.chat-composer button.chat-attach { background: transparent; border: 1px solid var(--line); color: var(--gold); }
+.chat-composer button.chat-attach:hover:not(:disabled) { border-color: var(--gold); }
+.chat-attach-preview { display: flex; align-items: center; gap: 10px; padding: 10px 14px 0; }
+.chat-attach-preview[hidden] { display: none; }
+.chat-attach-preview img { width: 56px; height: 56px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); }
+.chat-attach-remove { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); display: grid; place-items: center; font-size: 1rem; line-height: 1; cursor: pointer; }
+.msg-img { display: block; max-width: 100%; max-height: 220px; border-radius: 10px; object-fit: cover; }
+.msg-img + * , .msg-img + span { margin-top: 8px; }

@@ -17,7 +17,7 @@ import { pushSupported, subscribe, unsubscribe, isSubscribed, updatePrefs, testP
 const S = {
   view: 'home', filter: 'all', day: 'all',
   events: [], settings: {}, user: null, saved: [],
-  mode: 'local', chatOpen: false, chatBusy: false,
+  mode: 'local', chatOpen: false, chatBusy: false, chatImage: null,
   messages: [], pendingAction: null, modal: null,
   authTab: 'signin', authError: '', authBusy: false,
   adminEditing: null, adminTab: 'events', toastTimer: null,
@@ -368,7 +368,7 @@ function eventFormHtml() {
     '<label class="field wide"><span>' + esc(t('form.title')) + '</span><input name="title" required maxlength="120" value="' + esc(f.title) + '" placeholder="The Big Tuesday Quiz"></label>' +
     '<label class="field wide"><span>' + esc(t('form.titleSr')) + '</span><input name="titleSr" maxlength="120" value="' + esc(f.titleSr || '') + '" placeholder="Veliki kviz utorkom"></label>' +
     '<label class="field"><span>' + esc(t('form.category')) + '</span><select name="category">' + CATEGORIES.map((c) => '<option value="' + c.id + '" ' + (f.category === c.id ? 'selected' : '') + '>' + esc(categoryLabel(c.id)) + '</option>').join('') + '</select></label>' +
-    '<label class="field"><span>' + esc(t('form.photo')) + '</span><select name="image">' + imgOpts.map((i) => '<option value="assets/img/' + i + '.jpg" ' + (f.image === 'assets/img/' + i + '.jpg' ? 'selected' : '') + '>' + i + '.jpg</option>').join('') + '</select></label>' +
+    '<label class="field"><span>' + esc(t('form.photo')) + '</span><select name="image">' + customImgOpt(f.image) + imgOpts.map((i) => '<option value="assets/img/' + i + '.jpg" ' + (f.image === 'assets/img/' + i + '.jpg' ? 'selected' : '') + '>' + i + '.jpg</option>').join('') + '</select></label>' +
     '<label class="field"><span>' + esc(t('form.date')) + '</span><input type="date" name="date" required value="' + esc(f.date) + '"></label>' +
     '<label class="field"><span>' + esc(t('form.start')) + '</span><input type="time" name="time" required value="' + esc(f.time) + '"></label>' +
     '<label class="field"><span>' + esc(t('form.end')) + '</span><input type="time" name="endTime" value="' + esc(f.endTime || '') + '"></label>' +
@@ -555,7 +555,7 @@ function seriesFormHtml() {
     '<label class="field wide"><span>' + esc(t('form.title')) + '</span><input name="title" required maxlength="120" value="' + esc(f.title) + '" placeholder="The Big Tuesday Quiz"></label>' +
     '<label class="field wide"><span>' + esc(t('form.titleSr')) + '</span><input name="titleSr" maxlength="120" value="' + esc(f.titleSr || '') + '" placeholder="Veliki kviz utorkom"></label>' +
     '<label class="field"><span>' + esc(t('form.category')) + '</span><select name="category">' + CATEGORIES.map((c) => '<option value="' + c.id + '" ' + (f.category === c.id ? 'selected' : '') + '>' + esc(categoryLabel(c.id)) + '</option>').join('') + '</select></label>' +
-    '<label class="field"><span>' + esc(t('form.photo')) + '</span><select name="image">' + imgOpts.map((i) => '<option value="assets/img/' + i + '.jpg" ' + (f.image === 'assets/img/' + i + '.jpg' ? 'selected' : '') + '>' + i + '.jpg</option>').join('') + '</select></label>' +
+    '<label class="field"><span>' + esc(t('form.photo')) + '</span><select name="image">' + customImgOpt(f.image) + imgOpts.map((i) => '<option value="assets/img/' + i + '.jpg" ' + (f.image === 'assets/img/' + i + '.jpg' ? 'selected' : '') + '>' + i + '.jpg</option>').join('') + '</select></label>' +
     '<label class="field"><span>' + esc(t('form.date')) + '</span><input type="date" name="date" required value="' + esc(f.date) + '"></label>' +
     '<label class="field"><span>' + esc(t('form.start')) + '</span><input type="time" name="time" required value="' + esc(f.time) + '"></label>' +
     '<label class="field"><span>' + esc(t('series.freq')) + '</span><select name="freq">' + freqs.map((fr) => '<option value="' + fr.id + '" ' + (f.freq === fr.id ? 'selected' : '') + '>' + esc(fr.label) + '</option>').join('') + '</select></label>' +
@@ -639,7 +639,8 @@ function renderChat() {
         '<div class="chat-action-buttons"><button class="btn btn-primary btn-xs" data-action="chat-confirm" data-mid="' + m.id + '" type="button">' + icon('check') + ' ' + esc(t('chat.confirm')) + '</button>' +
         '<button class="btn btn-ghost btn-xs" data-action="chat-cancel" data-mid="' + m.id + '" type="button">' + esc(t('chat.cancel')) + '</button></div></div>'
       : (m.action && m.actionDone ? '<div class="chat-action done">' + icon('check') + ' ' + esc(t('chat.done')) + '</div>' : '');
-    return '<div class="msg ' + m.role + '"><div class="msg-bubble">' + mdToHtml(m.text) + extra + action + '</div></div>';
+    const img = m.image ? '<img class="msg-img" src="' + esc(m.image) + '" alt="">' : '';
+    return '<div class="msg ' + m.role + '"><div class="msg-bubble">' + img + (m.text ? mdToHtml(m.text) : '') + extra + action + '</div></div>';
   }).join('');
   if (S.chatBusy) html += '<div class="msg assistant"><div class="msg-bubble typing"><i></i><i></i><i></i></div></div>';
   box.innerHTML = html;
@@ -649,6 +650,43 @@ function renderChat() {
   const chips = last && last.chips ? last.chips : defaultChips();
   $('#chat-chips').innerHTML = chips.map((c) => '<button type="button" data-action="chip" data-text="' + esc(c) + '">' + esc(c) + '</button>').join('');
   $('#chat-send').disabled = S.chatBusy;
+  $('#chat-attach').disabled = S.chatBusy;
+  renderChatPreview();
+}
+
+function customImgOpt(image) {
+  return image && !String(image).startsWith('assets/img/') ? '<option value="' + esc(image) + '" selected>' + esc(t('form.customPhoto')) + '</option>' : '';
+}
+
+function renderChatPreview() {
+  const box = $('#chat-attach-preview');
+  if (!box) return;
+  box.hidden = !S.chatImage;
+  box.innerHTML = S.chatImage
+    ? '<img src="' + esc(S.chatImage) + '" alt=""><button type="button" class="chat-attach-remove" data-action="chat-remove-image" aria-label="' + esc(t('chat.removeImage')) + '">&times;</button>'
+    : '';
+}
+
+/* Downscale a picked image to a JPEG data URL (max 1280px) so it stays small enough to store. */
+function resizeImage(file, max = 1280) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('bad image'));
+      img.onload = () => {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 function addMessage(role, payload) {
@@ -666,12 +704,14 @@ function resetChat() {
 
 async function sendChat(raw) {
   const text = String(raw || '').trim();
-  if (!text || S.chatBusy) return;
-  addMessage('user', { text });
+  const image = S.chatImage;
+  if ((!text && !image) || S.chatBusy) return;
+  addMessage('user', { text, image });
+  S.chatImage = null;
   S.chatBusy = true; renderChat();
   await sleep(380 + Math.random() * 320);
   let res;
-  try { res = respond(text, { events: S.events, settings: S.settings, user: S.user, isAdmin: S.user?.role === 'admin' }); }
+  try { res = respond(text, { events: S.events, settings: S.settings, user: S.user, isAdmin: S.user?.role === 'admin', image }); }
   catch (err) { res = { text: t('chat.error'), chips: defaultChips() }; }
   const msg = addMessage('assistant', { text: res.text, events: res.events, chips: res.chips, action: res.action });
   S.pendingAction = res.action ? { action: res.action, mid: msg.id } : null;
@@ -785,6 +825,7 @@ async function onClick(ev) {
   }
   if (a === 'chat-open') { S.chatOpen = true; renderChat(); setTimeout(() => $('#chat-input').focus(), 60); return; }
   if (a === 'chat-close') { S.chatOpen = false; renderChat(); return; }
+  if (a === 'chat-remove-image') { S.chatImage = null; renderChatPreview(); return; }
   if (a === 'chip') { await sendChat(el.dataset.text); return; }
   if (a === 'chat-confirm') { await confirmChatAction(el.dataset.mid); return; }
   if (a === 'chat-cancel') {
@@ -900,6 +941,14 @@ async function onSubmit(ev) {
 }
 
 async function onChange(ev) {
+  if (ev.target.id === 'chat-file') {
+    const file = ev.target.files && ev.target.files[0];
+    ev.target.value = '';
+    if (!file) return;
+    try { S.chatImage = await resizeImage(file); renderChatPreview(); setTimeout(() => $('#chat-input').focus(), 30); }
+    catch (err) { showToast(t('chat.imageError'), 'error'); }
+    return;
+  }
   if (ev.target.id === 'notify-toggle') {
     const on = ev.target.checked;
     if (!S.user) { ev.target.checked = false; S.modal = { type: 'auth' }; renderModal(); return; }
@@ -953,6 +1002,7 @@ async function boot() {
   window.addEventListener('hashchange', () => { const prev = S.view; routeFromHash(); if (prev !== S.view) renderApp(); });
   $('#chat-fab').addEventListener('click', () => { S.chatOpen = !S.chatOpen; renderChat(); if (S.chatOpen) setTimeout(() => $('#chat-input').focus(), 60); });
   $('#chat-close').addEventListener('click', () => { S.chatOpen = false; renderChat(); });
+  $('#chat-attach').addEventListener('click', () => $('#chat-file').click());
   render();
 }
 

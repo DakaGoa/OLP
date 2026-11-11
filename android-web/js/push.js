@@ -31,12 +31,13 @@ export function pushSupported() {
   return typeof PushManager !== 'undefined' && 'serviceWorker' in navigator;
 }
 
-/* Get the VAPID public key. In shared mode, fetch from the server.
-   In local mode, there's no push server so we return null. */
+/* Get the VAPID public key. In shared mode, fetch from the public
+   /push/vapid endpoint (no auth required). In local mode there is no
+   push server, so we return null. */
 export async function getVapidKey() {
   if (!isShared()) return null;
   try {
-    const res = await api('GET', '/push/subscribers');
+    const res = await api('GET', '/push/vapid');
     return res.publicKey || null;
   } catch (_) { return null; }
 }

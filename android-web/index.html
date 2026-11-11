@@ -38,7 +38,12 @@
     </header>
     <div id="chat-messages" class="chat-messages" role="log" aria-live="polite"></div>
     <div id="chat-chips" class="chat-chips"></div>
+    <div id="chat-attach-preview" class="chat-attach-preview" hidden></div>
     <form id="chat-form" class="chat-composer" autocomplete="off">
+      <button id="chat-attach" class="chat-attach" type="button" data-i18n-aria="chat.attach" aria-label="Attach image">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>
+      </button>
+      <input id="chat-file" type="file" accept="image/*" hidden>
       <input id="chat-input" type="text" maxlength="400" data-i18n-placeholder="chat.placeholder" placeholder="What's on this Friday?" data-i18n-aria="chat.placeholder" aria-label="Message">
       <button id="chat-send" type="submit" data-i18n-aria="chat.send" aria-label="Send">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l16-8-6 16-3-6z"/></svg>

@@ -209,7 +209,7 @@ function findTarget(events, text, range, category) {
 }
 
 /* ---- admin command builders -------------------------------------------- */
-function buildAdd(text, range, category) {
+function buildAdd(text, range, category, image) {
   const cat = category || 'special';
   const time = extractTime(text) || '20:00';
   const date = range ? range.start : addDays(todayIso(), 1);
@@ -232,18 +232,18 @@ function buildAdd(text, range, category) {
     text: t('ai.addDraft'), chips: [t('chat.chip1')],
     action: {
       type: 'add',
-      label: t('ai.addLabel', { title: titleOut, date: longDate(date), time: formatTime(time) }),
+      label: t('ai.addLabel', { title: titleOut, date: longDate(date), time: formatTime(time) }) + (image ? t('ai.coverNote') : ''),
       payload: {
         title: titleOut, titleSr: titleOut, category: cat, date, time, endTime: '',
         description, descriptionSr: description,
         price, priceSr: price,
-        image: images[cat], featured: false, recurring: null
+        image: image || images[cat], featured: false, recurring: null
       }
     }
   };
 }
 
-function buildUpdate(text, range, category, events) {
+function buildUpdate(text, range, category, events, image) {
   const target = findTarget(events, text, range, category);
   if (!target.event) return { text: t('ai.updateNotFound'), chips: [t('chat.chip1')] };
   const e = target.event;
@@ -272,6 +272,8 @@ function buildUpdate(text, range, category, events) {
 
   const descMatch = text.match(/\b(?:description|details|about|opis|detalji)\s*[::]\s*(.+)$/i);
   if (descMatch) { patch.description = descMatch[1].trim(); patch.descriptionSr = descMatch[1].trim(); labelBits.push(t('ai.changeDesc')); }
+
+  if (image) { patch.image = image; labelBits.push(t('ai.changeCover')); }
 
   if (!Object.keys(patch).length) {
     return { text: t('ai.updateNoChange', { title: localized(e, 'title'), date: longDate(e.date) }), events: [e] };
@@ -322,7 +324,7 @@ function generalAnswer(text, ctx) {
 /* ---- main entry --------------------------------------------------------- */
 export function respond(message, ctx) {
   const text = String(message || '').trim();
-  if (!text) return { text: t('ai.empty'), chips: chipsDefault() };
+  if (!text && !ctx.image) return { text: t('ai.empty'), chips: chipsDefault() };
   const n = normalize(text);
   const range = parseDateRange(text);
   const category = detectCategory(text);
@@ -335,9 +337,10 @@ export function respond(message, ctx) {
   if (mutation && !isAdmin) {
     return { text: t('ai.adminOnly'), chips: [t('chat.chip1'), t('chat.chip2')] };
   }
-  if (mutation === 'add' && isAdmin) return buildAdd(text, range, category);
-  if (mutation === 'update' && isAdmin) return buildUpdate(text, range, category, ctx.events || []);
+  if (mutation === 'add' && isAdmin) return buildAdd(text, range, category, ctx.image);
+  if (mutation === 'update' && isAdmin) return buildUpdate(text, range, category, ctx.events || [], ctx.image);
   if (mutation === 'delete' && isAdmin) return buildDelete(text, range, category, ctx.events || []);
+  if (ctx.image) return { text: isAdmin ? t('ai.imageHint') : t('ai.imageNoAdmin'), chips: isAdmin ? [t('chat.chip1')] : chipsDefault() };
 
   const generalIntent = /\b(opening hours|opening times|hours|address|located|location|directions|contact|email|phone|instagram|follow us|social|notifications?|reminders?|bookmarks?|save an event|help|what can you do|how do i|where are you|where is the pub|find you|radno vreme|adres[aeiu]|gde se nalazite|kontakt|mejl|telefon|podsetni|obavestenj|pomoc|sta umes|kako da|maps)\b/.test(n);
   if (generalIntent) return generalAnswer(text, ctx);

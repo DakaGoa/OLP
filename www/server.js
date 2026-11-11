@@ -57,7 +57,7 @@ function sendJson(res, status, payload) {
 function readBody(req) {
   return new Promise((resolve) => {
     let raw = '';
-    req.on('data', (c) => { raw += c; if (raw.length > 200000) req.destroy(); });
+    req.on('data', (c) => { raw += c; if (raw.length > 4000000) req.destroy(); });
     req.on('end', () => {
       try { resolve(raw ? JSON.parse(raw) : {}); } catch (_) { resolve({}); }
     });

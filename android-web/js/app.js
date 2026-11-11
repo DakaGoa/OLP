@@ -650,7 +650,8 @@ function renderChat() {
   const chips = last && last.chips ? last.chips : defaultChips();
   $('#chat-chips').innerHTML = chips.map((c) => '<button type="button" data-action="chip" data-text="' + esc(c) + '">' + esc(c) + '</button>').join('');
   $('#chat-send').disabled = S.chatBusy;
-  $('#chat-attach').disabled = S.chatBusy;
+  $('#chat-attach').classList.toggle('is-disabled', S.chatBusy);
+  $('#chat-file').disabled = S.chatBusy;
   renderChatPreview();
 }
 
@@ -1002,7 +1003,6 @@ async function boot() {
   window.addEventListener('hashchange', () => { const prev = S.view; routeFromHash(); if (prev !== S.view) renderApp(); });
   $('#chat-fab').addEventListener('click', () => { S.chatOpen = !S.chatOpen; renderChat(); if (S.chatOpen) setTimeout(() => $('#chat-input').focus(), 60); });
   $('#chat-close').addEventListener('click', () => { S.chatOpen = false; renderChat(); });
-  $('#chat-attach').addEventListener('click', () => $('#chat-file').click());
   render();
 }
 

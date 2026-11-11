@@ -1,5 +1,5 @@
 /* Old London Pub service worker: network-first, with an offline cache. */
-const CACHE = 'olp-v3';
+const CACHE = 'olp-v5';
 const SHELL = [
   './', './index.html', './css/styles.css', './manifest.webmanifest',
   './js/seed.js', './js/core.js', './js/config.js', './js/api.js', './js/i18n.js',
@@ -15,7 +15,7 @@ const SHELL = [
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL).catch(() => {})).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL.map((u) => new Request(u, { cache: 'reload' }))).catch(() => {})).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (event) => {
   event.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
@@ -25,8 +25,11 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin || url.pathname.indexOf('/api/') !== -1) return;
+  // Revalidate with the server instead of trusting the browser's HTTP cache,
+  // so a fresh index.html never gets paired with stale CSS/JS after a deploy.
+  const net = req.mode === 'navigate' ? fetch(req) : fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' });
   event.respondWith(
-    fetch(req).then((res) => {
+    net.then((res) => {
       if (res && res.ok) {
         const copy = res.clone();
         caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
